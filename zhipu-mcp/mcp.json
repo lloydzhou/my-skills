@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "zs": { "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
+            "headers": { "Authorization": "Bearer ${ZHIPU_API_KEY}" } },
+    "zr": { "url": "https://api.z.ai/api/mcp/web_reader/mcp",
+            "headers": { "Authorization": "Bearer ${ZHIPU_API_KEY}" } },
+    "zd": { "url": "https://api.z.ai/api/mcp/zread/mcp",
+            "headers": { "Authorization": "Bearer ${ZHIPU_API_KEY}" } }
+  }
+}
