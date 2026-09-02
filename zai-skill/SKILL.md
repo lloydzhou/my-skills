@@ -1,6 +1,6 @@
 ---
 name: zai-skill
-description: 调用智谱 Coding Plan 的 MCP 服务——联网搜索(web_search_prime)、网页读取(webReader)、GitHub 仓库文档(zread: 结构/读文件/语义搜索)。当用户要求联网搜索、读取网页链接、查 GitHub 仓库用法时使用。底层经 mcpc CLI，需已配置 ZHIPU_API_KEY。
+description: 调用智谱 Coding Plan 的 MCP 服务——联网搜索(web_search_prime)、网页读取(webReader)、GitHub 仓库文档(zread: 结构/读文件/语义搜索)、图像理解(vision.py/glm-4.6v)。当用户要求联网搜索、读取网页链接、查 GitHub 仓库用法、识图/看图时使用。需已配置 ZHIPU_API_KEY 环境变量。
 ---
 
 # zai-skill：智谱 MCP 工具
@@ -86,3 +86,15 @@ print(t)'
 | 协议版本 | connect 必须 `--protocol-version 2024-11-05`，否则协商失败 |
 | 调用方式 | 裸命令直调。勿用 `zsh -ic` 等交互壳包装（与 mcpc daemon 冲突，异常退出） |
 | zread 覆盖 | 小众仓库可能 `repo not found`（服务端索引限制，非调用问题） |
+| vision 无 MCP 端点 | 已实测确认，只能走下方直连 API |
+
+## vision（图像理解，MCP 之外的唯一例外）
+
+glm-4.6v 只有 Chat Completions 形态，无 MCP 端点，用附属脚本直连（Coding Plan 免费通道）：
+
+```bash
+python3 <skill目录>/vision.py <图片路径|URL> ["提示词(默认:详细描述图片)"]
+```
+
+- key 从环境变量 `ZHIPU_API_KEY` 读取（脚本内部，不回显）；本地图片自动 base64，URL 直传
+- 直接用 Bash 执行即可，无需任何环境注入包装
