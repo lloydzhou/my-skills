@@ -6,7 +6,7 @@
 
 | Skill | 说明 | 依赖 |
 |---|---|---|
-| [zskill](zskill/) | 用 [mcpc](https://github.com/apify/mcpc) 调用智谱 Coding Plan MCP：联网搜索、读网页、GitHub 仓库文档 | `mcpc` + `ZHIPU_API_KEY` |
+| [zai-skill](zai-skill/) | 用 [mcpc](https://github.com/apify/mcpc) 调用智谱 Coding Plan MCP：联网搜索、读网页、GitHub 仓库文档 | `mcpc` + `ZHIPU_API_KEY` |
 
 ## 安装
 

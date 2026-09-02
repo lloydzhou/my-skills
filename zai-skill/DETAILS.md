@@ -1,4 +1,4 @@
-# zskill-skill
+# zai-skill
 
 一个极简的 Claude Code / bash-agent Skill：通过 [mcpc](https://github.com/apify/mcpc)（通用 MCP CLI client）调用智谱 Coding Plan 的 MCP 服务。
 
@@ -16,8 +16,8 @@
 
 ```bash
 npm i -g @apify/mcpc                      # MCP CLI 底座
-mkdir -p ~/.claude/skills/zskill
-cp SKILL.md ~/.claude/skills/zskill/
+mkdir -p ~/.claude/skills/zai-skill
+cp SKILL.md ~/.claude/skills/zai-skill/
 cp mcp.json ~/.mcp.json                   # mcpc 自动发现配置(Claude Desktop/VS Code 兼容)
 echo 'export ZHIPU_API_KEY="你的key"' >> ~/.zshrc   # key 只进环境变量
 ```

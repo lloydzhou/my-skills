@@ -1,5 +1,5 @@
 ---
-name: zskill
+name: zai-skill
 description: 用 mcpc CLI 直接调用智谱 Coding Plan 的 MCP 服务——网络搜索(web_search_prime)、网页读取(webReader)、GitHub 仓库文档(zread: 目录结构/读文件/语义搜索)。当用户要求联网搜索、读取网页链接、查 GitHub 仓库用法/文件/结构时使用。需要 mcpc(@apify/mcpc) 和 ZHIPU_API_KEY。
 ---
 
