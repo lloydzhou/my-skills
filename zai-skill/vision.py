@@ -9,15 +9,18 @@ key = os.environ.get("ZHIPU_API_KEY", "")
 if not key:
     sys.exit("ZHIPU_API_KEY 未设置(布尔探测失败)")
 
-with open(img_path, "rb") as f:
-    b64 = base64.b64encode(f.read()).decode()
+if img_path.startswith(("http://", "https://")):
+    image_url_value = img_path          # 远程 URL 直传
+else:
+    with open(img_path, "rb") as f:     # 本地文件 base64
+        image_url_value = "data:image/jpeg;base64," + base64.b64encode(f.read()).decode()
 
 body = json.dumps({
     "model": "glm-4.6v",
     "messages": [{
         "role": "user",
         "content": [
-            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
+            {"type": "image_url", "image_url": {"url": image_url_value}},
             {"type": "text", "text": prompt},
         ],
     }],

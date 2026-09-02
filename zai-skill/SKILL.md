@@ -86,6 +86,8 @@ print(t)'
 | 协议版本 | connect 必须 `--protocol-version 2024-11-05`，否则协商失败 |
 | 调用方式 | 裸命令直调。勿用 `zsh -ic` 等交互壳包装（与 mcpc daemon 冲突，异常退出） |
 | zread 覆盖 | 小众仓库可能 `repo not found`（服务端索引限制，非调用问题） |
+| domain 过滤无效 | `search_domain_filter` 实测不生效（返回结果不按域名过滤），需要域名限定时改在 `search_query` 里手写 `site:github.com` |
+| vision URL 源 | 图片 URL 须可被智谱服务端公网抓取；有反爬的源（如 wikimedia）返回 400"格式/解析错误"，此时下载到本地走 base64 |
 | vision 无 MCP 端点 | 已实测确认，只能走下方直连 API |
 
 ## vision（图像理解，MCP 之外的唯一例外）
