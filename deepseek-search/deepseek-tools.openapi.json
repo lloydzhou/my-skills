@@ -1,0 +1,93 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "DeepSeek Tools API",
+    "version": "2026-10-17",
+    "description": "DeepSeek web Search and Fetch for agents. Billed per successful request (CNY 5 per 1000 each); account-level 5 QPS per API. Docs: https://api-docs.deepseek.com/guides/search/"
+  },
+  "servers": [
+    { "url": "https://api.deepseek.com" }
+  ],
+  "paths": {
+    "/v1/tools/search": {
+      "post": {
+        "operationId": "search",
+        "summary": "Web search (DeepSeek in-house engine)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "Search terms (1-128 chars, not all whitespace). Supports operators: site: -site: -word -\"phrase\" \"exact phrase\" lang:zh,en after:2025-01-01 before:2026"
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 50,
+                    "default": 10,
+                    "description": "Number of results to return; does not affect price"
+                  },
+                  "ori_question": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "description": "The user's original question that triggered the search; improves intent matching"
+                  },
+                  "localization": {
+                    "type": "string",
+                    "description": "IP address used to prioritize localized results"
+                  },
+                  "need_content": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Return page body text in each result's content field"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "results[]: rerank_score(0-3, >=1.5 good), title, url, snippet(100-200 chars), summary(600-800 chars, for models), content(only if need_content), site_name, site_icon, date(RFC3339), authority(0-4, >=3 very authoritative)"
+          }
+        }
+      }
+    },
+    "/v1/tools/fetch": {
+      "post": {
+        "operationId": "fetch",
+        "summary": "Fetch one web page as Markdown",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["url"],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "maxLength": 8192,
+                    "description": "HTTP/HTTPS URL with a host; no username/password. Subject to target site availability and policy"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "{title, content}: page title and Markdown body"
+          }
+        }
+      }
+    }
+  }
+}
