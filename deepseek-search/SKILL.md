@@ -7,7 +7,7 @@ description: 用 oapi 调用 DeepSeek Search/Fetch API——联网搜索（自�
 
 ## 环境
 
-- `command -v oapi` 通过，且版本 ≥ 0.1.4（connect 时存储凭据需要 0.1.4+；缺失或过旧提示用户升级：`cargo install --path <oapi仓库>` 或对应包管理器）
+- `command -v oapi` 通过，且版本 ≥ 0.1.5（OCR/ASR/TTS 需要 0.1.5 的 multipart 上传与 `-o` 二进制落盘；缺失或过旧提示用户升级：`cargo install --path <oapi仓库>` 或对应包管理器）
 - `DEEPSEEK_API_KEY` 已设为环境变量（仅 connect 时用一次）
 - 本 skill 已用 `oapi connect deepseek` 注册（见下）
 
@@ -48,6 +48,26 @@ oapi deepseek search -F query='rust async site:github.com lang:en after:2025' \
 oapi deepseek fetch -F url=https://example.com/article --jq '.content'
 ```
 
+## OCR / ASR / TTS（2026-11-13 新增独立接口；spec 版本 2026-11-13，oapi ≥ 0.1.5）
+
+```bash
+# OCR：PDF/Office/图片逐页识别（rich_layout 保留版面坐标标记）
+oapi deepseek ocr -F purpose=text_recognition -F file=@doc.pdf
+oapi deepseek ocr -F purpose=rich_layout_recognition -F file=@page.png
+
+# ASR：语音转文字（16bit WAV / Ogg Opus，语种自动识别）
+oapi deepseek asr -F file=@speech.wav
+
+# TTS：文字转语音，二进制响应用 -o 落盘
+oapi deepseek tts --body '{"text":"你好，我是 DeepSeek。","voice_id":"stella"}' -o speech.wav
+```
+
+```bash
+bash <skill目录>/smoke-test.sh   # 三接口连通性自检（消耗一分钱以内余额，需已注册+设置 key）
+```
+
+`-F file=@路径` 是 oapi 的 multipart 上传语法（0.1.5+）；不带 `@` 的 `-F` 仍是 JSON body。TTS 响应为音频字节流，必须 `-o` 落盘；OCR/ASR 返回 JSON，OCR 的 JSON 前有服务端 keep-alive 换行，oapi 会自动解析。
+
 - `--jq` 过滤输出；`-o text` 输出纯文本
 - 非 2xx 退出码为 1，错误信息在 stderr（含 HTTP 状态码与响应前 512 字节）
 - 复杂嵌套参数才需要 `--body '<json>'`
@@ -74,6 +94,14 @@ oapi deepseek fetch -F url=https://example.com/article --jq '.content'
 | fetch URL | ≤8192 字符，必须 http/https 且含 host，**禁止用户名密码** |
 | query 长度 | 1–128 Unicode 字符，搜索语法算在长度内 |
 | content 取舍 | 全文优先用 fetch 按需抓；search 默认不返回正文可省 token（计费按次，与 count/need_content 无关） |
+| OCR 计费 | ¥1.5/千页按成功页数；**客户端断开不取消识别**，完成的页照常计费 |
+| OCR 坐标 | rich_layout 结果含 `<｜ref｜><｜box｜>` 标记，坐标归一化 0–1000，按页面宽高换算 |
+| OCR 限制 | ≤100 MiB、≤1000 页、总时限 180s；带密码/超页数/格式不支持时重试无效 |
+| ASR 限制 | 16bit PCM WAV（8k–48kHz）或 Ogg Opus；≤8 MiB、≤120s；双声道只识别左声道 |
+| TTS 计费 | ¥3/万字符（限时 5 折 1.5），**汉字算 2 个字符**；单次 ≤30 分钟音频 |
+| TTS 断流 | 响应中途断开 = 合成失败，重跑即可；不支持语速调节 |
+| 语音折扣 | ASR ¥0.78/时、TTS ¥3/万字的 5 折为限时折扣价 |
+| 新接口来源 | OCR/ASR/TTS 行为与计费口径来自官方文档（2026-11-13），**未经本机实测**，以 `smoke-test.sh` 结果为准 |
 
 ## 与 zai-skill 的关系
 

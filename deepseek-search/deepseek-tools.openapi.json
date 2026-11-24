@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "DeepSeek Tools API",
-    "version": "2026-10-17",
-    "description": "DeepSeek web Search and Fetch for agents. Billed per successful request (CNY 5 per 1000 each); account-level 5 QPS per API. Docs: https://api-docs.deepseek.com/guides/search/"
+    "version": "2026-11-13",
+    "description": "DeepSeek standalone tool APIs: web Search/Fetch, document OCR, speech recognition (ASR), text-to-speech (TTS). Search/Fetch billed CNY 5 per 1000 successful requests; OCR CNY 1.5 per 1000 pages; ASR CNY 0.78/hour (limited-time 50% off); TTS CNY 3 per 10k chars (limited-time 50% off, han = 2 chars). Docs: https://api-docs.deepseek.com/guides/search/"
   },
   "servers": [
     { "url": "https://api.deepseek.com" }
@@ -85,6 +85,119 @@
         "responses": {
           "200": {
             "description": "{title, content}: page title and Markdown body"
+          }
+        }
+      }
+    },
+    "/v1/tools/ocr": {
+      "post": {
+        "operationId": "ocr",
+        "summary": "OCR documents/images, text returned per page",
+        "description": "Accepts PDF/DOC/DOCX/PPT/PPTX and PNG/JPEG/WebP/GIF/BMP/TIFF (format judged by content). Limits: 100 MiB, 1000 pages, 180s total including upload. The server streams newlines as keep-alive, then returns one JSON object. Page text keeps <｜ref｜>/<｜box｜> markers with coordinates normalized to 0-1000 for rich_layout_recognition. Billed per recognized page.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file", "purpose"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Document or image to recognize"
+                  },
+                  "purpose": {
+                    "type": "string",
+                    "enum": ["text_recognition", "rich_layout_recognition"],
+                    "description": "text_recognition extracts text from plain Word/PPT directly; rich_layout_recognition recognizes every page with layout markers"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "{page_count, pages[{index, text, finish_reason}], usage}: pages[].text is raw model output; finish_reason=length means that page is truncated"
+          }
+        }
+      }
+    },
+    "/v1/tools/asr": {
+      "post": {
+        "operationId": "asr",
+        "summary": "Transcribe speech audio to text",
+        "description": "16-bit PCM WAV (8k-48k Hz) or Ogg Opus, mono/stereo (stereo uses left channel), max 8 MiB, max 120 seconds. Language is auto-detected (21 languages), no parameter. Not streaming.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Audio file to transcribe"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "{request_id, text, duration_ms}"
+          }
+        }
+      }
+    },
+    "/v1/tools/tts": {
+      "post": {
+        "operationId": "tts",
+        "summary": "Synthesize text to speech audio (whole text, streaming response body)",
+        "description": "Audio streams back as synthesis runs; max 30 minutes per request. 10 languages auto-detected. If the connection drops mid-response the synthesis failed. No speed control. Streaming text input needs the WebSocket endpoint (not exposed here).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["text"],
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 10000,
+                    "description": "Text to read; max 10000 billed characters (han = 2 chars each); request body max 64 KiB"
+                  },
+                  "voice_id": {
+                    "type": "string",
+                    "enum": ["stella", "tide"],
+                    "default": "stella",
+                    "description": "stella = Haixing female (default), tide = Anchao male"
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": ["wav", "pcm"],
+                    "default": "wav",
+                    "description": "pcm is raw 24 kHz 16-bit mono"
+                  },
+                  "filter_markdown": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Strip Markdown formatting before reading"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "audio/wav (or raw PCM) bytes; save with -o"
           }
         }
       }
