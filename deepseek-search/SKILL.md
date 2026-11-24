@@ -7,44 +7,45 @@ description: 用 oapi 调用 DeepSeek Search/Fetch API——联网搜索（自�
 
 ## 环境
 
-- `command -v oapi` 通过，且版本 ≥ 0.1.3（旧版不支持 header 环境变量展开；缺失或过旧提示用户升级：`cargo install --path <oapi仓库>` 或对应包管理器）
-- `DEEPSEEK_API_KEY` 已设为环境变量
+- `command -v oapi` 通过，且版本 ≥ 0.1.4（connect 时存储凭据需要 0.1.4+；缺失或过旧提示用户升级：`cargo install --path <oapi仓库>` 或对应包管理器）
+- `DEEPSEEK_API_KEY` 已设为环境变量（仅 connect 时用一次）
 - 本 skill 已用 `oapi connect deepseek` 注册（见下）
 
 ## 密钥安全
 
-- key 唯一合法形态：环境变量 + `--header` 值中的 `${DEEPSEEK_API_KEY}` 占位符，由 oapi 进程内部展开（不上进程参数，`ps` 不可见）
+- key 唯一合法形态：环境变量 + connect 时的 `-H 'Authorization: Bearer ${DEEPSEEK_API_KEY}'`（oapi 在 connect 时展开一次，存入 `~/.local/share/oapi/credentials/deepseek.json`，0600 仅本用户可读）
+- 此后所有调用零 key、零环境变量：`oapi deepseek search ...` 自动附带存储的凭据
 - key 不得出现在命令行明文、输出或对话上下文：禁止 `echo $DEEPSEEK_API_KEY`、禁止 `--header "Authorization: Bearer sk-xxx"`（真实 key 直接写死）
 - 探测是否已配置只用布尔式：`[ -n "$DEEPSEEK_API_KEY" ] && echo 已设置`
-- 占位符引用的变量未设置时 oapi 会**报错拒绝请求**（fail closed），不会发送字面占位符——看到该报错先检查环境变量，不要改用明文
+- 凭据文件若被 chmod 成 group/other 可读，oapi **拒载并中止调用**（fail closed）；看到 `group/other-readable` 报错先 `chmod 600` 修复，不要改用明文传参
+- 涉及 key 的环境变量配置（`~/.zshrc`）由用户本人手动维护，AI 不代为读写
 
-## 注册（幂等，spec 随 skill 目录分发）
+## 注册（幂等；换 key 重跑同一命令即可）
 
 ```bash
-oapi connect deepseek <skill目录>/deepseek-tools.openapi.json
+oapi connect deepseek <skill目录>/deepseek-tools.openapi.json \
+  -H 'Authorization: Bearer ${DEEPSEEK_API_KEY}'
 ```
 
-注册信息缓存在 oapi registry；spec 更新后重跑同一命令即可。
+- 重跑不带 `-H`：只刷新 spec，凭据保留
+- 重跑带 `-H`：凭据替换（轮换 key 就这样做）
+- `oapi sync deepseek`：刷新 spec，凭据保留
+- `oapi rm deepseek`：spec 与凭据一起删除；`oapi ls` 里带凭据的 API 标 `+cred`
 
 ## 调用
 
-body 字段一律用 `-F K=V`（自动类型推断，数字/布尔不需引号）：
+body 字段一律用 `-F K=V`（自动类型推断，数字/布尔不需引号）；凭据由 oapi 自动附带，调用时不传任何 header：
 
 ```bash
-AUTH='Authorization: Bearer ${DEEPSEEK_API_KEY}'
-
 # 搜索（默认 10 条；summary 600-800 字适合喂模型，content 需显式要）
-oapi deepseek search -F query='DeepSeek V4 发布' \
-  --header "$AUTH" --jq '.results'
+oapi deepseek search -F query='DeepSeek V4 发布' --jq '.results'
 
 # 搜索语法直接写在 query 里；用户原始问题可加 ori_question
 oapi deepseek search -F query='rust async site:github.com lang:en after:2025' \
-  -F count=5 -F need_content=true \
-  --header "$AUTH"
+  -F count=5 -F need_content=true
 
 # 抓单个网页，返回 Markdown 正文
-oapi deepseek fetch -F url=https://example.com/article \
-  --header "$AUTH" --jq '.content'
+oapi deepseek fetch -F url=https://example.com/article --jq '.content'
 ```
 
 - `--jq` 过滤输出；`-o text` 输出纯文本

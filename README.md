@@ -7,7 +7,7 @@
 | Skill | 说明 | 依赖 |
 |---|---|---|
 | [zai-skill](zai-skill/) | 用 [mcpc](https://github.com/lloydzhou/mcpc) 调用智谱 Coding Plan MCP：联网搜索、读网页、GitHub 仓库文档 | `mcpc` + `ZHIPU_API_KEY` |
-| [deepseek-search](deepseek-search/) | 用 [oapi](https://github.com/lloydzhou/oapi) 调用 DeepSeek Search/Fetch API：联网搜索、抓网页为 Markdown | `oapi` + `DEEPSEEK_API_KEY` |
+| [deepseek-search](deepseek-search/) | 用 [oapi](https://github.com/lloydzhou/oapi) 调用 DeepSeek Search/Fetch API：联网搜索、抓网页为 Markdown | `oapi` ≥ 0.1.4 + `DEEPSEEK_API_KEY`（仅 connect 时用） |
 
 ## 安装
 
