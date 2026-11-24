@@ -7,40 +7,30 @@ description: 调用智谱 Coding Plan 的 MCP 服务——联网搜索(web_searc
 
 ## 环境
 
-- `command -v mcpc` 通过（缺失则提示用户：`npm i -g @apify/mcpc`）
+- `command -v mcpc` 通过（缺失则提示用户安装：`brew install lloydzhou/tap/mcpc`，Linux 用 AUR `mcpc`）
 - `ZHIPU_API_KEY` 已设为环境变量（api.z.ai 直连，无需代理）
-- `~/.mcp.json` 含下方三个 server 条目
-
-```json
-// ~/.mcp.json —— 若已存在,将条目合并进 mcpServers,切勿整文件覆盖
-{
-  "mcpServers": {
-    "zs": { "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
-            "headers": { "Authorization": "Bearer ${ZHIPU_API_KEY}" } },
-    "zr": { "url": "https://api.z.ai/api/mcp/web_reader/mcp",
-            "headers": { "Authorization": "Bearer ${ZHIPU_API_KEY}" } },
-    "zd": { "url": "https://api.z.ai/api/mcp/zread/mcp",
-            "headers": { "Authorization": "Bearer ${ZHIPU_API_KEY}" } }
-  }
-}
-```
 
 ## 密钥安全
 
-- key 唯一合法形态：环境变量 + 上述配置中的 `${ZHIPU_API_KEY}` 占位符，由 mcpc 进程内部替换
-- key 不得出现在命令行参数、输出或对话上下文中：禁止 `echo $ZHIPU_API_KEY`、禁止拼 `-H "Authorization: Bearer $ZHIPU_API_KEY"`
+- key 唯一合法形态：环境变量 + connect 时的 `-H "Authorization: Bearer $ZHIPU_API_KEY"`（双引号让 shell 展开）
+- key 只在 connect 时经过一次命令行，随后由 mcpc 存入 `~/.local/share/mcpc/credentials/<会话名>.json`（0600，仅本用户可读）；缓存文件只留 `<stored>` 引用，不含明文
+- 此后调用、daemon 重启均零 key：会话由 daemon 持有，启动时自动恢复
+- key 不得出现在输出或对话上下文：禁止 `echo $ZHIPU_API_KEY`、禁止把真实 key 写进任何文件
 - 探测是否已配置只用布尔式：`[ -n "$ZHIPU_API_KEY" ] && echo 已设置`
-- 涉及 key 的配置（`~/.zshrc`、`~/.mcp.json`）由用户本人手动维护，AI 不代为读写
+- 涉及 key 的环境变量配置（`~/.zshrc`）由用户本人手动维护，AI 不代为读写
 
-## 建会话（幂等，断线重跑自愈）
+## 建会话（首次 connect；换 key 或断线后重连）
 
 ```bash
-mcpc connect ~/.mcp.json:zs @zs --protocol-version 2024-11-05
-mcpc connect ~/.mcp.json:zr @zr --protocol-version 2024-11-05
-mcpc connect ~/.mcp.json:zd @zd --protocol-version 2024-11-05
+mcpc connect https://api.z.ai/api/mcp/web_search_prime/mcp @zs -H "Authorization: Bearer $ZHIPU_API_KEY" --protocol-version 2024-11-05
+mcpc connect https://api.z.ai/api/mcp/web_reader/mcp @zr -H "Authorization: Bearer $ZHIPU_API_KEY" --protocol-version 2024-11-05
+mcpc connect https://api.z.ai/api/mcp/zread/mcp @zd -H "Authorization: Bearer $ZHIPU_API_KEY" --protocol-version 2024-11-05
 ```
 
-会话认证全局持久（`~/.mcpc/`），此后 `tools-call` 阶段零 key。`mcpc`（无参数）可查看各会话 `● live` 状态。
+- 会话 live 时重跑 connect 报 `already live`；断线后 daemon 自动清理 dead session，直接重跑即可
+- 换 key / 轮换：`mcpc close @NAME`（删除会话及其存储的凭据）后用新 key 重新 connect
+- daemon 无需手动管理：普通命令首次执行自动拉起；会话在 daemon 重启后凭存储的凭据自动恢复
+- `mcpc ls` 看各会话 live 状态；`mcpc daemon status` 显式探测 daemon（停止时退出码 3，不会拉起）
 
 ## 调用（3 会话 / 6 工具）
 
@@ -84,10 +74,9 @@ print(t)'
 |---|---|
 | 端点拼写 | `api.z.ai/api/mcp/<能力>/mcp` 两段 `/mcp`，少一段 404 |
 | 协议版本 | connect 必须 `--protocol-version 2024-11-05`，否则协商失败 |
+| 重复 connect | 会话 live 时报 `session '@xx' already live`；换 key 先 `close @xx` 再 connect |
 | 调用方式 | 裸命令直调。勿用 `zsh -ic` 等交互壳包装（与 mcpc daemon 冲突，异常退出） |
 | zread 覆盖 | 小众仓库可能 `repo not found`（服务端索引限制，非调用问题） |
-| domain 过滤无效 | `search_domain_filter` 实测不生效（返回结果不按域名过滤），需要域名限定时改在 `search_query` 里手写 `site:github.com` |
-| vision URL 源 | 图片 URL 须可被智谱服务端公网抓取；有反爬的源（如 wikimedia）返回 400"格式/解析错误"，此时下载到本地走 base64 |
 | vision 无 MCP 端点 | 已实测确认，只能走下方直连 API |
 
 ## vision（图像理解，MCP 之外的唯一例外）
