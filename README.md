@@ -16,7 +16,7 @@ git clone git@github.com:lloydzhou/my-skills.git ~/my-skills
 cd ~/my-skills && ./install.sh
 ```
 
-`install.sh` 将每个含 `SKILL.md` 的子目录软链到 `~/.claude/skills/`，仓库内改动即时生效。
+`install.sh` 将每个含 `SKILL.md` 的子目录软链到 `~/.agents/skills/`（主安装位），并在 `~/.claude/skills/` 做符号链接指向它，仓库内改动即时生效。
 
 ## 新增 skill
 
@@ -27,4 +27,4 @@ mkdir <skill名>/ && 写好 SKILL.md → 更新本 README 索引 → commit & pu
 ## 约定
 
 - 每个 skill 一个子目录，必须含 `SKILL.md`，可选附带配置样例/资源
-- **密钥安全**：key 只进环境变量或配置占位符（如 `${ZHIPU_API_KEY}`），绝不出现在命令行、文档或仓库中
+- **密钥安全**：key 只进环境变量，调用时以 `-H "Authorization: Bearer $VAR"` 由 shell 展开传入（展开后会短暂出现在进程参数中，同用户可见，属已知取舍），绝不明文写进文档或仓库
